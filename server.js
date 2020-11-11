@@ -1,6 +1,7 @@
 const server = require('http').createServer()
 const options = {}
 const io = require('socket.io')(server, options)
+const moment = require('moment')
 
 server.listen(3000)
 
@@ -64,7 +65,7 @@ function formatMessage(username, text) {
   return {
     username,
     text,
-    time:'hehe'
+    time: moment().format('HH:mm')
   };
 }
 
