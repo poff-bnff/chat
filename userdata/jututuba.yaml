@@ -1,0 +1,35 @@
+-
+    username: 0204a138-3420-410e-acad-f2123a0d735d
+    shortlist:
+        -
+            cassette_id: '11'
+        -
+            cassette_id: '1711'
+        -
+            cassette_id: '1716'
+        -
+            cassette_id: '1780'
+        -
+            cassette_id: '35'
+    savedscreenings: []
+    userpasses:
+        errorType: TypeError
+        errorMessage: Cannot read property 'passCode' of undefined
+        trace:
+            - 'TypeError: Cannot read property ''passCode'' of undefined'
+            - '    at Runtime.exports.handler (/var/task/src/product/get.js:26:31)'
+            - '    at processTicksAndRejections (internal/process/task_queues.js:97:5)'
+    sub: 0204a138-3420-410e-acad-f2123a0d735d
+    address: 'Eesti, Viljandimaa'
+    birthdate: '1988-06-18'
+    email_verified: 'false'
+    gender: female
+    phone_number_verified: 'false'
+    picture: this users picture is in S3
+    identities: >-
+        [{"userId":"117879801481165759377","providerName":"Google","providerType":"Google","issuer":null,"primary":false,"dateCreated":1605008838040},{"userId":"ed60c2f3-ea5f-4af4-ab73-0c417a08f596","providerName":"Eventival","providerType":"OIDC","issuer":null,"primary":false,"dateCreated":1605009778297},{"userId":"10158775469434621","providerName":"Facebook","providerType":"Facebook","issuer":null,"primary":false,"dateCreated":1605009864770}]
+    name: Liis
+    phone_number: '56205188'
+    family_name: Kasper
+    email: liis.kasper@gmail.com
+    profile_filled: true

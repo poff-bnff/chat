@@ -1,25 +1,34 @@
+const path = require('path')
+const fs = require('fs')
+const yaml = require('js-yaml')
+
 const server = require('http').createServer()
 const options = {}
 const io = require('socket.io')(server, options)
 const moment = require('moment')
 
+const dirPath = path.join(__dirname, 'userdata')
+console.log(dirPath);
+
 server.listen(3000)
-
-
 
 const botName = 'Bot '
 
 io.on('connection', (socket) => {
   console.log('a user connected');
-  socket.on('joinRoom', ({ username, room }) => {
-    const user = userJoin(socket.id, username, room);
+
+  socket.on('joinRoom', ({ userProfile, room }) => {
+    
+    const user = userJoin(socket.id, userProfile, room)
+
+    // console.log(user)
 
     socket.join(user.room);
 
     // Welcome current user; kuvab ainult antud kasutajale 
     socket.emit('message', formatMessage(botName, 'Welcome to Chat!'));
 
-    // Broadcast when a user connects k6igile v54lja arvatud kasutaja ise 
+    // Broadcast when a user connects k6igile v4lja arvatud kasutaja ise 
     socket.broadcast
       .to(user.room)
       .emit(
@@ -39,7 +48,7 @@ io.on('connection', (socket) => {
   // Listen for chatMessage
   socket.on('chatMessage', msg => {
     const user = getCurrentUser(socket.id);
-    console.log(user, msg);
+    // console.log(user, msg);
     io.to(user.room).emit('message', formatMessage(user.username, msg));
   });
 
@@ -66,14 +75,24 @@ function formatMessage(username, text) {
   return {
     username,
     text,
-    time: moment().format('HH:mm')
+    time: moment().format('hh:mm')
   };
 }
 
 const users = [];
 
 // Join user to chat
-function userJoin(id, username, room) {
+function userJoin(id, userProfile, room) {
+  let file = yaml.safeLoad(fs.readFileSync(path.join(dirPath, `${room}.yaml`), 'utf-8'))
+
+  if (file.filter( user => user.username === userProfile.username) ){
+    console.log('User already exists')
+  }else {
+    let yamlStr = yaml.safeDump(JSON.parse(JSON.stringify([userProfile])), { 'noRefs': true, 'indent': '4' })
+    fs.appendFileSync(path.join(dirPath, `${room}.yaml`), yamlStr, 'utf8')
+  }
+
+  let username = userProfile.name
   const user = { id, username, room };
 
   users.push(user);
