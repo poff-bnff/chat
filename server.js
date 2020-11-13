@@ -7,8 +7,9 @@ const options = {}
 const io = require('socket.io')(server, options)
 const moment = require('moment')
 
-const dirPath = path.join(__dirname, 'userdata')
-console.log(dirPath);
+const userdata_dirpath = path.join(__dirname, '_userdata')
+const messagedata_dirpath = path.join(__dirname, '_messagedata')
+console.log(userdata_dirpath);
 
 server.listen(3000)
 
@@ -46,11 +47,32 @@ io.on('connection', (socket) => {
   });
 
   // Listen for chatMessage
-  socket.on('chatMessage', msg => {
-    const user = getCurrentUser(socket.id);
-    // console.log(user, msg);
-    io.to(user.room).emit('message', formatMessage(user.username, msg));
-  });
+  socket.on('chatMessage', ({ msg, room, userProfile }) => {
+    const user = getCurrentUser(socket.id)
+    console.log(user, msg)
+    if( user.room === undefined){
+      console.log('User added to room')
+      user.room = room
+    }
+    io.to(user.room).emit('message', formatMessage(user.username, msg))
+
+    // s6numid teeki
+    let filePath = path.join(messagedata_dirpath, `${user.room}_messages.yaml`)
+    message = {
+      user: userProfile.username,
+      message: msg
+    }
+    
+    if(!fs.existsSync(filePath)){ 
+      console.log('Open message data file, first user to post')
+      let yamlStr = yaml.safeDump(JSON.parse(JSON.stringify([message])), { 'noRefs': true, 'indent': '4' })
+      fs.appendFileSync(filePath, yamlStr, 'utf8')
+    }else {
+      console.log('User message added to message data')
+      let yamlStr = yaml.safeDump(JSON.parse(JSON.stringify([message])), { 'noRefs': true, 'indent': '4' })
+      fs.appendFileSync(filePath, yamlStr, 'utf8')
+    }
+  })
 
   // Runs when client disconnects
   socket.on('disconnect', () => {
@@ -83,19 +105,29 @@ const users = [];
 
 // Join user to chat
 function userJoin(id, userProfile, room) {
-  let file = yaml.safeLoad(fs.readFileSync(path.join(dirPath, `${room}.yaml`), 'utf-8'))
-
-  if (file.filter( user => user.username === userProfile.username) ){
-    console.log('User already exists')
-  }else {
+  
+  let filePath = path.join(userdata_dirpath, `${room}.yaml`)
+  
+  if(!fs.existsSync(filePath)){
+    console.log('Open room data file, first user in this room')
+    
     let yamlStr = yaml.safeDump(JSON.parse(JSON.stringify([userProfile])), { 'noRefs': true, 'indent': '4' })
-    fs.appendFileSync(path.join(dirPath, `${room}.yaml`), yamlStr, 'utf8')
+    fs.appendFileSync(filePath, yamlStr, 'utf8')
+    
+    let file = yaml.safeLoad(fs.readFileSync(filePath), 'utf-8')
+    
+    if (file.filter( user => user.username === userProfile.username) ){
+      console.log('User already exists in room data file')
+    }else {
+      fs.appendFileSync(filePath, yamlStr, 'utf8')
+    }
   }
-
+  
   let username = userProfile.name
   const user = { id, username, room };
-
+  
   users.push(user);
+  console.log('users', users)
 
   return user;
 }
