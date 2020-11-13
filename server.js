@@ -3,7 +3,10 @@ const fs = require('fs')
 const yaml = require('js-yaml')
 
 const server = require('http').createServer()
-const options = {}
+const options = {
+  pingInterval: 10000,
+  pingTimeout: 5000
+}
 const io = require('socket.io')(server, options)
 const moment = require('moment')
 
