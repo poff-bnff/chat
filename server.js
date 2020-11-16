@@ -12,11 +12,15 @@ const moment = require('moment')
 
 const userdata_dirpath = path.join(__dirname, '_userdata')
 const messagedata_dirpath = path.join(__dirname, '_messagedata')
-console.log(userdata_dirpath);
+const userpool_filepath = path.join(__dirname, 'userpool.yaml')
+if(!fs.existsSync(userpool_filepath)) {
+  fs.appendFileSync(userpool_filepath, '---', 'utf8')
+}
+
+const users = [];
 
 server.listen(3000)
 
-const botName = 'Chat Bot '
 
 io.on('connection', (socket) => {
   console.log('a user connected');
@@ -29,19 +33,20 @@ io.on('connection', (socket) => {
 
     socket.join(user.room);
 
-    // Welcome current user    // peaks kohe kaas panema hulga vanu s6numeid 
-    socket.emit('oldMessage', getMessages(room))
-    socket.emit('message', formatMessage(botName, 'Welcome to Chat!'))
+    // Welcome current user    // peaks kohe kaas panema hulk vanu s6numeid 
+    const previous_messages = getLastMessages(room, 10)
+    for( message of previous_messages)
+    {
+      socket.emit('message', formatMessage(message.user, message.message))
+    }
 
     // Broadcast when a user connects k6igile v4lja arvatud kasutaja ise 
     socket.broadcast
       .to(user.room)
       .emit(
         'message',
-        formatMessage(botName, `${user.username} has joined the chat`)
+        formatMessage(null, `${userProfile.name} has joined the chat`)
       );
-
-    // io.emit() // kuvab k6igile
 
     // Send users and room info
     io.to(user.room).emit('roomUsers', {
@@ -50,10 +55,17 @@ io.on('connection', (socket) => {
     })
   })
 
+
+
   // Listen for chatMessage
   socket.on('chatMessage', ({ msg, room, userProfile }) => {
     const user = getCurrentUser(socket.id)
-    console.log(user, msg)
+
+    // let room_name = room
+    // if(room.substring(room.length -10, room.length) === '_moderated'){
+    //   room_name = room.substring(0, room.length -10)
+    // }
+    // let moderated_room_name = room_name + '_moderated'
     
     if(!user){
       userJoin(socket.id, userProfile, room) 
@@ -62,12 +74,12 @@ io.on('connection', (socket) => {
       console.log('User added to room')
       user.room = room
     }
-    io.to(user.room).emit('message', formatMessage(user.username, msg))
+    io.to(user.room).emit('message', formatMessage(userProfile.sub, msg))
 
     // save messages
     let filePath = path.join(messagedata_dirpath, `${user.room}_messages.yaml`)
     message = {
-      user: userProfile.username,
+      user: userProfile.sub,
       message: msg
     }
     
@@ -82,37 +94,6 @@ io.on('connection', (socket) => {
     }
   })
 
-  // // Listen for moderatedMessage
-  // socket.on('moderatedMessage', ({ msgId, room }) => {
-
-  //   const messageFromData = getMessageFromData(msgId, room)
-  //   const user = getCurrentUser(socket.id)
-
-  //   console.log(user, msg)
-  //   if( user.room === undefined){
-  //     console.log('User added to room')
-  //     user.room = room
-  //   }
-  //   io.to(user.room).emit('message', formatMessage(user.username, msg))
-
-  //   // s6numid teeki
-  //   let filePath = path.join(messagedata_dirpath, `${user.room}_messages.yaml`)
-  //   message = {
-  //     id: msgId
-  //     user: userProfile.username,
-  //     message: msg
-  //   }
-    
-  //   if(!fs.existsSync(filePath)){ 
-  //     console.log('Open message data file, first user to post')
-  //     let yamlStr = yaml.safeDump(JSON.parse(JSON.stringify([message])), { 'noRefs': true, 'indent': '4' })
-  //     fs.appendFileSync(filePath, yamlStr, 'utf8')
-  //   }else {
-  //     console.log('User message added to message data')
-  //     let yamlStr = yaml.safeDump(JSON.parse(JSON.stringify([message])), { 'noRefs': true, 'indent': '4' })
-  //     fs.appendFileSync(filePath, yamlStr, 'utf8')
-  //   }
-  // })
 
   // Runs when client disconnects
   socket.on('disconnect', () => {
@@ -121,7 +102,7 @@ io.on('connection', (socket) => {
     if (user) {
       io.to(user.room).emit(
         'message',
-        formatMessage(botName, `${user.username} has left the chat`)
+        formatMessage(null, `${user.sub} has left the chat`)
       );
 
       // Send users and room info
@@ -130,10 +111,18 @@ io.on('connection', (socket) => {
         users: getRoomUsers(user.room)
       });
     }
-  });
-});
+  })
+})
 
-function formatMessage(username, text) {
+function formatMessage(usersub, text) {
+  let username = 'bot'
+  if (usersub !== null) {
+    try {
+      username = readUserFromPool(usersub).name
+    } catch (error) {
+      console.log({E: error, usersub});    
+    }
+  }
   return {
     username,
     text,
@@ -141,7 +130,6 @@ function formatMessage(username, text) {
   };
 }
 
-const users = [];
 
 // Join user to chat
 function userJoin(id, userProfile, room) {
@@ -156,9 +144,8 @@ function userJoin(id, userProfile, room) {
   
   let userpool = yaml.safeLoad(fs.readFileSync(userdata_filePath), 'utf8') || []
 
-  let connected_user = userpool.filter( user => user.username === userProfile.username)
+  let connected_user = userpool.filter( user => user.sub === userProfile.sub)
 
-  console.log({userProfile, userpool});
   if (connected_user.length > 0){
     console.log('User already exists in room data file')
   } else {
@@ -166,13 +153,25 @@ function userJoin(id, userProfile, room) {
     fs.appendFileSync(userdata_filePath, yamlStr, 'utf8')
   }
   
-  let username = userProfile.name
-  const user = { id, username, room };
+  let sub = userProfile.sub
+  const user = { id, sub, room };
   
   users.push(user)
-  console.log('users', users)
+  saveUserToPool(userProfile.sub, userProfile)
 
   return user;
+}
+
+function saveUserToPool(sub, userProfile) {
+  let userpool = yaml.safeLoad(fs.readFileSync(userpool_filepath), 'utf8') || {}
+  userpool[sub] = userProfile
+  let yamlStr = yaml.safeDump(JSON.parse(JSON.stringify(userpool)), { 'noRefs': true, 'indent': '4' })
+  fs.writeFileSync(userpool_filepath, yamlStr, 'utf8')
+}
+
+function readUserFromPool(sub) {
+  let userpool = yaml.safeLoad(fs.readFileSync(userpool_filepath), 'utf8') || {}
+  return userpool[sub] || null
 }
 
 // Get current user
@@ -191,23 +190,18 @@ function userLeave(id) {
 
 // Get room users
 function getRoomUsers(room) {
-  return users.filter(user => user.room === room);
+  return users.filter(user => user.room === room)
+    .map(user => readUserFromPool(user.sub))
 }
 
-// // Get message from data
-// function getMessageFromData(restoredMessage, room) {
-//   let messageYaml = yaml.safeLoad(fs.readFileSync(path.join(messagedata_dirpath, `${room}_messages.yaml`, 'utf8')))
-//   let messageFromYaml = messageFromYaml.find( msg => msg.message.value === restoredMessage)
-//     return messageFromYaml(msg)
-  
+function getLastMessages(room, count) {
 
-// }
-
-// console.log(getMessageFromData)
-
-function getMessages(room) {
-  let messageYaml = yaml.safeLoad(fs.readFileSync(path.join(messagedata_dirpath, `${room}_messages.yaml`, 'utf8')))
-  let lastMessages = messageYaml.slice(-10, -1)
-  console.log(lastMessages)
+  let message_file_name = path.join(messagedata_dirpath, `${room}_messages.yaml`)
+  if(!fs.existsSync(message_file_name)){ 
+    return []
+  }
+  let messageYaml = yaml.safeLoad(fs.readFileSync(message_file_name, 'utf8'))
+  let lastMessages = messageYaml.slice(-(count), -1)
+  return lastMessages
 }
 

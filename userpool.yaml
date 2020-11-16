@@ -1,0 +1,78 @@
+0204a138-3420-410e-acad-f2123a0d735d:
+    username: 0204a138-3420-410e-acad-f2123a0d735d
+    sub: 0204a138-3420-410e-acad-f2123a0d735d
+    address: 'Eesti, Viljandimaa'
+    birthdate: '1988-06-18'
+    email_verified: 'false'
+    gender: female
+    phone_number_verified: 'false'
+    picture: this users picture is in S3
+    identities: >-
+        [{"userId":"117879801481165759377","providerName":"Google","providerType":"Google","issuer":null,"primary":false,"dateCreated":1605008838040},{"userId":"ed60c2f3-ea5f-4af4-ab73-0c417a08f596","providerName":"Eventival","providerType":"OIDC","issuer":null,"primary":false,"dateCreated":1605009778297},{"userId":"10158775469434621","providerName":"Facebook","providerType":"Facebook","issuer":null,"primary":false,"dateCreated":1605009864770}]
+    name: Liis
+    phone_number: '56205188'
+    family_name: Kasper
+    email: liis.kasper@gmail.com
+    shortlist:
+        -
+            cassette_id: '11'
+        -
+            cassette_id: '1711'
+        -
+            cassette_id: '1716'
+        -
+            cassette_id: '1780'
+        -
+            cassette_id: '35'
+    savedscreenings: []
+    userpasses: []
+    profile_filled: true
+c8dffade-14ef-4c09-b298-a1226ee13271:
+    username: c8dffade-14ef-4c09-b298-a1226ee13271
+    sub: c8dffade-14ef-4c09-b298-a1226ee13271
+    address: 'Eesti, Harjumaa'
+    birthdate: '1987-08-13'
+    email_verified: 'false'
+    gender: female
+    phone_number_verified: 'false'
+    picture: no profile picture saved
+    identities: >-
+        [{"userId":"5d780587-1e81-43c7-9089-83819911dd23","providerName":"Eventival","providerType":"OIDC","issuer":null,"primary":false,"dateCreated":1605515587508},{"userId":"3929861103696643","providerName":"Facebook","providerType":"Facebook","issuer":null,"primary":false,"dateCreated":1605519683618}]
+    name: Mary
+    phone_number: '37256207480'
+    family_name: Brave
+    email: tapferm@gmail.com
+    shortlist: []
+    savedscreenings: []
+    userpasses: []
+    profile_filled: true
+undefined:
+    username: c8dffade-14ef-4c09-b298-a1226ee13271
+    profile_filled: true
+    industryAccessLevel: true
+    eventivalProfile:
+        photo: >-
+            https://vp.eventival.com/files/7/people/2142026/photo/600562_normal.jpg
+        name: Mariann
+        lastName: Tapfer
+        professions:
+            -
+                industry:
+                    _text: Film Industry
+                section:
+                    _text: Film Festival
+                profession:
+                    _text: Consultant
+        badges:
+            -
+                valid:
+                    from: '2020-11-12 00:00:00 GMT+0200'
+                    to: '2020-11-29 00:00:00 GMT+0200'
+                type: Industry PRO
+            -
+                valid:
+                    from: '2020-11-13 00:00:00 GMT+0200'
+                    to: '2020-11-29 00:00:00 GMT+0200'
+                type: STAFF
+    name: Mariann
+    email: tapferm@gmail.com
