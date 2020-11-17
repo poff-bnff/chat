@@ -1,1 +1,16 @@
-{}
+puu:
+    users:
+        - c8dffade-14ef-4c09-b298-a1226ee13271
+    messages: []
+p66sas:
+    users:
+        - c8dffade-14ef-4c09-b298-a1226ee13271
+    messages:
+        -
+            user_id: c8dffade-14ef-4c09-b298-a1226ee13271
+            message:
+                id: u1605627687548646
+                user_name: Mariann
+                text: veel midagi
+                time: '15:41'
+                is_moderated: false
