@@ -1,6 +1,8 @@
 const path = require('path')
 const fs = require('fs')
 const yaml = require('js-yaml')
+const moment = require('moment')
+
 
 const server = require('http').createServer()
 const options = {
@@ -8,7 +10,8 @@ const options = {
   pingTimeout: 5000
 }
 const io = require('socket.io')(server, options)
-const moment = require('moment')
+server.listen(3000)
+
 
 const userdata_dirpath = path.join(__dirname, '_userdata')
 const messagedata_dirpath = path.join(__dirname, '_messagedata')
@@ -19,17 +22,13 @@ if(!fs.existsSync(userpool_filepath)) {
 
 const users = [];
 
-server.listen(3000)
-
-
 io.on('connection', (socket) => {
-  console.log('a user connected');
+  console.log('a user connected', socket.id)
 
-  socket.on('joinRoom', ({ userProfile, room }) => {
-    
+  socket.on('joinRoom', ({ userId, userName, roomName, userProfile }) => {
     const user = userJoin(socket.id, userProfile, room)
 
-    // console.log(user)
+    console.log(user)
 
     socket.join(user.room);
 
@@ -56,16 +55,15 @@ io.on('connection', (socket) => {
   })
 
 
-
   // Listen for chatMessage
   socket.on('chatMessage', ({ msg, room, userProfile }) => {
     const user = getCurrentUser(socket.id)
 
-    // let room_name = room
-    // if(room.substring(room.length -10, room.length) === '_moderated'){
-    //   room_name = room.substring(0, room.length -10)
-    // }
-    // let moderated_room_name = room_name + '_moderated'
+    let room_name = room
+    if(room.substring(room.length -10, room.length) === '_moderated'){
+      room_name = room.substring(0, room.length -10)
+    }
+    let moderated_room_name = room_name + '_moderated'
     
     if(!user){
       userJoin(socket.id, userProfile, room) 
@@ -74,7 +72,10 @@ io.on('connection', (socket) => {
       console.log('User added to room')
       user.room = room
     }
+
     io.to(user.room).emit('message', formatMessage(userProfile.sub, msg))
+    // io.to(user.room_name).emit('message', formatMessage(userProfile.sub, msg))
+    // io.to(user.moderated_room_name).emit('message', formatMessage(userProfile.sub, msg))
 
     // save messages
     let filePath = path.join(messagedata_dirpath, `${user.room}_messages.yaml`)
