@@ -54,7 +54,7 @@ function saveMessagePool() {
 
 
 io.on('connection', (socket) => {
-    console.log('a user connected', socket.id)
+    console.log('connect', socket.id)
     SOCKETPOOL[socket.id] = null
     saveSocketPool()
 
@@ -71,7 +71,7 @@ io.on('connection', (socket) => {
         const user_name = incoming_object.user_name
         const room_name = incoming_object.room_name
         const is_moderated = incoming_object.is_moderated
-        console.log('joinRoom', { user_id, user_name, room_name, is_moderated })
+        console.log('join user', user_id, 'to room', room_name)
         socket.join(room_name) // Nüüd on see socket seotud konkreetse nimeruumiga https://socket.io/docs/v3/rooms/index.html 
 
         SOCKETPOOL[socket.id] = {user_id, room_name, is_moderated}
@@ -85,20 +85,15 @@ io.on('connection', (socket) => {
         ROOMPOOL[room_name].users = [...new Set(ROOMPOOL[room_name].users)]
         saveRoomPool()
     
-        // socket.emit('messageToClient', formatMessage(user_id, 'tere-tere'))
-    
         const previous_messages = ROOMPOOL[room_name].messages.slice(-10)
         for (message_id of previous_messages) {
             let message = MESSAGEPOOL[message_id]
-            console.log('sending previous', {message})
             socket.emit('messageToClient', message)
         }
-        // console.log(JSON.stringify({ USERPOOL, ROOMPOOL, USER_ROOMS, previous_messages }, null, 4))
-    
         // k6igile v4lja arvatud kasutaja ise 
         // socket.broadcast
         //     .to(room_name)
-        //     .emit('messageToClient', formatMessage(null, `+ ${user_name}`))
+        //     .emit('broadcast', formatMessage(null, `+ ${user_name}`))
     
         // Send users and room info
         broadcastRoomUsers(room_name)
@@ -106,7 +101,7 @@ io.on('connection', (socket) => {
 
     // Listen for chatMessage
     socket.on('messageToServer', ({ user_id, room_name, message }) => {
-        console.log('got messageToServer', { socket: socket.id, user_id, room_name, message });
+        console.log('got messageToServer', socket, user_id, room_name, message)
         if (!USERPOOL[user_id] || !ROOMPOOL[room_name] || !ROOMPOOL[room_name].users) {
             console.log({ E: 'Talking before entering...', user_id, room_name, message })
             socket.emit('Rejoin, please')
@@ -143,8 +138,7 @@ io.on('connection', (socket) => {
         let room_name = SOCKETPOOL[socket_id].room_name
         let user_id = SOCKETPOOL[socket_id].user_id
         let user_name = USERPOOL[user_id].user_name
-        console.log('Disconnecting', { socket_id, user_id, room_name })
-        console.log('Disconnecting', JSON.stringify({ user: USERPOOL[user_id], room: ROOMPOOL[room_name] }, null, 4))
+        console.log('Disconnecting', socket_id, user_id, 'from', room_name )
         removeUserFromRoompool(room_name, user_id)
         disconnectSocket(socket)
 
