@@ -101,7 +101,7 @@ io.on('connection', (socket) => {
 
     // Listen for chatMessage
     socket.on('messageToServer', ({ user_id, room_name, message }) => {
-        console.log('got messageToServer', socket, user_id, room_name, message)
+        console.log('got messageToServer', socket.id, user_id, room_name, message)
         if (!USERPOOL[user_id] || !ROOMPOOL[room_name] || !ROOMPOOL[room_name].users) {
             console.log({ E: 'Talking before entering...', user_id, room_name, message })
             socket.emit('Rejoin, please')
