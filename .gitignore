@@ -106,3 +106,4 @@ dist
 
 _messagedata/*
 _userdata/*
+*.yaml
