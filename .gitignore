@@ -104,6 +104,4 @@ dist
 .tern-port
 
 
-_messagedata/*
-_userdata/*
 *.yaml
