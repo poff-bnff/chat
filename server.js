@@ -3,7 +3,6 @@ const fs = require('fs')
 const yaml = require('js-yaml')
 const moment = require('moment')
 
-
 const server = require('http').createServer()
 const options = {
     pingInterval: 0.5*60*1000,
@@ -12,45 +11,20 @@ const options = {
 const io = require('socket.io')(server, options)
 server.listen(3000)
 
-var SOCKETPOOL = {}
+const MODERATORS = initializeModerators()
+
 const socketpool_filepath = path.join(__dirname, 'socketpool.yaml')
-fs.writeFileSync(socketpool_filepath, '{}', 'utf8')
-function saveSocketPool() {
-    fs.writeFileSync(socketpool_filepath, yaml.safeDump(JSON.parse(JSON.stringify(SOCKETPOOL)), { 'noRefs': true, 'indent': '4' }), 'utf8')
-}
+const SOCKETPOOL = {}
+savePool(SOCKETPOOL, socketpool_filepath)
 
-var USERPOOL = {}
 const userpool_filepath = path.join(__dirname, 'userpool.yaml')
-if (fs.existsSync(userpool_filepath)) {
-    USERPOOL = yaml.safeLoad(fs.readFileSync(userpool_filepath, 'utf8'))
-} else {
-    fs.writeFileSync(userpool_filepath, '{}', 'utf8')
-}
-function saveUserPool() {
-    fs.writeFileSync(userpool_filepath, yaml.safeDump(USERPOOL, { 'noRefs': true, 'indent': '4' }), 'utf8')
-}
+const USERPOOL = initializePool(userpool_filepath)
 
-var ROOMPOOL = {}
 const roompool_filepath = path.join(__dirname, 'roompool.yaml')
-if (fs.existsSync(roompool_filepath)) {
-    ROOMPOOL = yaml.safeLoad(fs.readFileSync(roompool_filepath, 'utf8'))
-} else {
-    fs.writeFileSync(roompool_filepath, '{}', 'utf8')
-}
-function saveRoomPool() {
-    fs.writeFileSync(roompool_filepath, yaml.safeDump(ROOMPOOL, { 'noRefs': true, 'indent': '4' }), 'utf8')
-}
+const ROOMPOOL = initializePool(roompool_filepath)
 
-var MESSAGEPOOL = {}
 const messagepool_filepath = path.join(__dirname, 'messagetpool.yaml')
-if (fs.existsSync(messagepool_filepath)) {
-    MESSAGEPOOL = yaml.safeLoad(fs.readFileSync(messagepool_filepath, 'utf8'))
-} else {
-    fs.writeFileSync(messagepool_filepath, '{}', 'utf8')
-}
-function saveMessagePool() {
-    fs.writeFileSync(messagepool_filepath, yaml.safeDump(JSON.parse(JSON.stringify(MESSAGEPOOL)), { 'noRefs': true, 'indent': '4' }), 'utf8')
-}
+const MESSAGEPOOL = initializePool(messagepool_filepath)
 
 
 io.on('connection', (socket) => {
@@ -63,11 +37,8 @@ io.on('connection', (socket) => {
     // })
 
     socket.on('joinRoom', (incoming_object) => {
-        let access_level = 'user'
-        if (true) {
-            access_level = 'moderator'
-        }
         const user_id = incoming_object.user_id
+        const access_level = getAccessLevel(user_id)
         const user_name = incoming_object.user_name
         const room_name = incoming_object.room_name
         const is_moderated = incoming_object.is_moderated
@@ -194,4 +165,41 @@ function formatMessage(user_id, text) {
         time: moment().format('HH:mm'),
         is_moderated: false
     }
+}
+
+// ---------------------
+function getAccessLevel(user_id) {
+    return MODERATORS.indexOf(user_id) || null
+}
+function initializeModerators() {
+    const moderators_filepath = path.join(__dirname, 'moderators.yaml')
+    if (fs.existsSync(moderators_filepath)) {
+        return yaml.safeLoad(fs.readFileSync(moderators_filepath, 'utf8'))
+    } else {
+        fs.writeFileSync(moderators_filepath, '[]', 'utf8')
+        return []
+    }
+}
+function initializePool(pool_filepath) {
+    if (fs.existsSync(pool_filepath)) {
+        return yaml.safeLoad(fs.readFileSync(pool_filepath, 'utf8'))
+    } else {
+        fs.writeFileSync(pool_filepath, '{}', 'utf8')
+        return {}
+    }
+}
+function savePool(pool, pool_filepath) {
+    fs.writeFileSync(pool_filepath, yaml.safeDump(JSON.parse(JSON.stringify(pool)), { 'noRefs': true, 'indent': '4' }), 'utf8')
+}
+function saveSocketPool() {
+    savePool(SOCKETPOOL, socketpool_filepath)
+}
+function saveUserPool() {
+    savePool(USERPOOL, userpool_filepath)
+}
+function saveRoomPool() {
+    savePool(ROOMPOOL, roompool_filepath)
+}
+function saveMessagePool() {
+    savePool(MESSAGEPOOL, messagepool_filepath)
 }
