@@ -95,14 +95,12 @@ io.on('connection', (socket) => {
         if (socket_user.access_level === 'moderator') {
             socket.emit('YOU ARE MODERATOR')
         }
-        if (SOCKETPOOL[socket.id]) {
-            savePing(SOCKETPOOL[socket.id].user_id, SOCKETPOOL[socket.id].room_name)
-        }
-
+        
         socket.join(room_name) // Nüüd on see socket seotud konkreetse nimeruumiga https://socket.io/docs/v3/rooms/index.html 
-
+        
         SOCKETPOOL[socket.id] = { user_id, room_name } //, is_moderated}
         saveSocketPool()
+        saveJoin(user_id, room_name)
 
         USERPOOL[user_id] = { user_name: socket_user.user_name, access_level: socket_user.access_level } //, userProfile }
         saveUserPool()
@@ -124,6 +122,19 @@ io.on('connection', (socket) => {
 
         // Send users and room info
         // broadcastRoomUsers(room_name)
+    })
+
+    socket.on('Track me', async (incoming_object) => {
+        const user_id = incoming_object.user_id
+        const socket_user = await lookupUser(user_id) // {"user_name":"Jaan Leppik","access_level":"moderator"}
+        
+        const slug = incoming_object.hostname + '/' + incoming_object.pathname
+        SOCKETPOOL[socket.id] = { user_id, slug }
+        saveSocketPool()
+        saveTrack(user_id, slug)
+
+        USERPOOL[user_id] = { user_name: socket_user.user_name, access_level: socket_user.access_level }
+        saveUserPool()
     })
 
     // Listen for chatMessage
@@ -264,7 +275,7 @@ function saveMessagePool() {
     savePool(MESSAGEPOOL, messagepool_filepath)
 }
 function initializeLogs() {
-    for (const log_file of ['log/ping.txt']) {
+    for (const log_file of ['log/ping.txt','log/join.txt', 'log/track.txt']) {
         if (!fs.existsSync(log_file)) {
             fs.writeFileSync(log_file, '', 'utf8')
         }
@@ -272,4 +283,18 @@ function initializeLogs() {
 }
 function savePing(user_id, room) {
     fs.appendFileSync('log/ping.txt', new Date() + ' | ' + user_id + ' | ' + USERPOOL[user_id].user_name + ' | ' + room + '\n')
+}
+function saveJoin(user_id, room) {
+    try {
+        fs.appendFileSync('log/join.txt', new Date() + ' | ' + user_id + ' | ' + USERPOOL[user_id].user_name + ' | ' + room + '\n')
+    } catch (error) {
+        console.log({E: error});        
+    }
+}
+function saveTrack(user_id, room) {
+    try {
+        fs.appendFileSync('log/track.txt', new Date() + ' | ' + user_id + ' | ' + USERPOOL[user_id].user_name + ' | ' + room + '\n')
+    } catch (error) {
+        console.log({E: error});        
+    }
 }
