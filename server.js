@@ -82,6 +82,9 @@ io.on('connection', (socket) => {
         console.log('join user', user_id, 'to room', room_name)
         const socket_user = await lookupUser(user_id) // {"user_name":"Jaan Leppik","access_level":"moderator"}
         console.log({ socket_user })
+        if (socket_user.access_level === 'moderator') {
+            socket.emit('YOU ARE MODERATOR')
+        }
 
         socket.join(room_name) // Nüüd on see socket seotud konkreetse nimeruumiga https://socket.io/docs/v3/rooms/index.html 
 
@@ -107,7 +110,7 @@ io.on('connection', (socket) => {
         //     .emit('broadcast', formatMessage(null, `+ ${user_name}`))
 
         // Send users and room info
-        broadcastRoomUsers(room_name)
+        // broadcastRoomUsers(room_name)
     })
 
     // Listen for chatMessage
@@ -131,6 +134,9 @@ io.on('connection', (socket) => {
     })
 
     socket.on('moderate', (message_id) => {
+        if(USERPOOL[SOCKETPOOL[socket.id].user_id].access_level !== 'moderator') {
+            return
+        }
         let message = MESSAGEPOOL[message_id]
         message.is_moderated = true
         console.log('kas tõesti', { message, MP: MESSAGEPOOL[message_id] })
@@ -153,8 +159,8 @@ io.on('connection', (socket) => {
         removeUserFromRoompool(room_name, user_id)
         disconnectSocket(socket)
 
-        io.to(room_name)
-            .emit('messageToClient', formatMessage(null, `- ${user_name}`))
+        // io.to(room_name)
+        //     .emit('messageToClient', formatMessage(null, `- ${user_name}`))
         removeUserFromRoompool(room_name, user_id)
         broadcastRoomUsers(room_name)
     })
