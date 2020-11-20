@@ -128,7 +128,7 @@ io.on('connection', (socket) => {
         const user_id = incoming_object.user_id
         const socket_user = await lookupUser(user_id) // {"user_name":"Jaan Leppik","access_level":"moderator"}
         
-        const slug = incoming_object.hostname + '/' + incoming_object.pathname
+        const slug = incoming_object.hostname + incoming_object.pathname
         SOCKETPOOL[socket.id] = { user_id, slug }
         saveSocketPool()
         saveTrack(user_id, slug)
@@ -282,18 +282,18 @@ function initializeLogs() {
     }
 }
 function savePing(user_id, room) {
-    fs.appendFileSync('log/ping.txt', new Date() + ' | ' + user_id + ' | ' + USERPOOL[user_id].user_name + ' | ' + room + '\n')
+    fs.appendFileSync('log/ping.txt', new Date().toISOString() + ' | ' + user_id + ' | ' + USERPOOL[user_id].user_name + ' | ' + room + '\n')
 }
 function saveJoin(user_id, room) {
     try {
-        fs.appendFileSync('log/join.txt', new Date() + ' | ' + user_id + ' | ' + USERPOOL[user_id].user_name + ' | ' + room + '\n')
+        fs.appendFileSync('log/join.txt', new Date().toISOString() + ' | ' + user_id + ' | ' + USERPOOL[user_id].user_name + ' | ' + room + '\n')
     } catch (error) {
         console.log({E: error});        
     }
 }
 function saveTrack(user_id, room) {
     try {
-        fs.appendFileSync('log/track.txt', new Date() + ' | ' + user_id + ' | ' + USERPOOL[user_id].user_name + ' | ' + room + '\n')
+        fs.appendFileSync('log/track.txt', new Date().toISOString() + ' | ' + user_id + ' | ' + USERPOOL[user_id].user_name + ' | ' + room + '\n')
     } catch (error) {
         console.log({E: error});        
     }
