@@ -32,7 +32,7 @@ const MESSAGEPOOL = initializePool(messagepool_filepath)
 
 
 io.on('connection', (socket) => {
-    console.log('connect', socket.id)
+    // console.log('connect', socket.id)
     SOCKETPOOL[socket.id] = null
     saveSocketPool()
 
@@ -52,7 +52,7 @@ io.on('connection', (socket) => {
             https.get(COGNITO_PROFILE_URL + user_id, (res) => {
                 const { statusCode } = res
                 const contentType = res.headers['content-type']
-                console.log({ statusCode, contentType })
+                // console.log({ statusCode, contentType })
                 let error
                 if (statusCode !== 200) {
                     error = new Error(`Request Failed.\nStatus Code: ${statusCode} user_id: ${user_id}`)
@@ -171,7 +171,7 @@ io.on('connection', (socket) => {
         let socket_id = socket.id
         if (SOCKETPOOL[socket_id] === null) {
             disconnectSocket(socket)
-            console.log('close empty connection', socket_id)
+            // console.log('close empty connection', socket_id)
             return
         }
         let room_name = SOCKETPOOL[socket_id].room_name
@@ -309,9 +309,20 @@ function saveJoin(user_id, room) {
         console.log({E: error});        
     }
 }
-function saveTrack(user_id, room) {
+function saveTrack(user_id, location) {
+    if (!user_id) {
+        console.log({E: 'Trying to track nobody?'})
+        return
+    }
+    if (!USERPOOL[user_id]) {
+        console.log({E: 'User [' . user_id + '] has escaped the pool'})
+        return
+    }
+    if (!location) {
+        location = '~~~/nowhere/~~~'
+    }
     try {
-        fs.appendFileSync('log/track.txt', new Date().toISOString() + ' | ' + user_id + ' | ' + USERPOOL[user_id].user_name + ' | ' + room + '\n')
+        fs.appendFileSync('log/track.txt', new Date().toISOString() + ' | ' + user_id + ' | ' + USERPOOL[user_id].user_name + ' | ' + location + '\n')
     } catch (error) {
         console.log({E: error});        
     }
