@@ -55,7 +55,7 @@ io.on('connection', (socket) => {
                 console.log({ statusCode, contentType })
                 let error
                 if (statusCode !== 200) {
-                    error = new Error(`Request Failed.\nStatus Code: ${statusCode}`)
+                    error = new Error(`Request Failed.\nStatus Code: ${statusCode} user_id: ${user_id}`)
                 } else if (contentType !== 'application/json') {
                     error = new Error(`Invalid content-type.\nExpected "application/json" but received "${contentType}"`)
                 }
@@ -71,27 +71,25 @@ io.on('connection', (socket) => {
                 })
                 res.on('end', () => {
                     // console.log(rawData)
-                    json_data = JSON.parse(rawData)
-                    resolve({user_name: json_data.name + ' ' + json_data.family_name, access_level: getAccessLevel(user_id)})
+                    let json_data = JSON.parse(rawData)
+                    let user_name = 'J. Doe'
+                    if (json_data.name && json_data.family_name) {
+                        user_name = json_data.name + ' ' + json_data.family_name
+                    }
+                    resolve({user_name, access_level: getAccessLevel(user_id)})
                 })
             }).on('error', (e) => {
-                console.error(`Got error: ${e.message}`)
+                console.error(`Got request error: ${e.message}`)
             })
         })
-
-        // const fetched = {"name":"Jaan","family_name":"Leppik","email":"jaan.leppik@poff.ee","industryUser":true}
-        // if (!fetched.industryUser) {
-        //     return false
-        // }
-        // return {user_name: fetched.name + ' ' + fetched.family_name, access_level: getAccessLevel(user_id)}
     }
 
     socket.on('joinRoom', async (incoming_object) => {
         const room_name = incoming_object.room_name
         const user_id = incoming_object.user_id
-        console.log('join user', user_id, 'to room', room_name)
-        const socket_user = await lookupUser(user_id) // {"user_name":"Jaan Leppik","access_level":"moderator"}
-        console.log({ socket_user })
+        // console.log('join user', user_id, 'to room', room_name)
+        const socket_user = await lookupUser(user_id)
+        // console.log({ socket_user })
         if (socket_user.access_level === 'moderator') {
             socket.emit('YOU ARE MODERATOR')
         }
@@ -163,7 +161,7 @@ io.on('connection', (socket) => {
         }
         let message = MESSAGEPOOL[message_id]
         message.is_moderated = true
-        console.log('kas tõesti', { message, MP: MESSAGEPOOL[message_id] })
+        // console.log('kas tõesti', { message, MP: MESSAGEPOOL[message_id] })
         saveMessagePool()
         io.to(message.room_name)
             .emit('messageToClient', message)
@@ -179,7 +177,7 @@ io.on('connection', (socket) => {
         let room_name = SOCKETPOOL[socket_id].room_name
         let user_id = SOCKETPOOL[socket_id].user_id
         let user_name = USERPOOL[user_id].user_name
-        console.log('Disconnecting', socket_id, user_id, 'from', room_name)
+        // console.log('Disconnecting', socket_id, user_id, 'from', room_name)
         removeUserFromRoompool(room_name, user_id)
         disconnectSocket(socket)
 
@@ -201,22 +199,42 @@ function disconnectSocket(socket) {
 }
 
 function removeUserFromRoompool(room_name, user_id) {
+    if (!room_name && !user_id) {
+        console.log({E: 'Trying to remove noone from nowhere. Deep.'})
+        return
+    }
+    if (!room_name) {
+        console.log({E: 'Trying to remove user [' + user_id + '] from nowhere'})
+        return
+    }
+    if (!user_id) {
+        console.log({E: 'Trying to remove noone from [' + room_name + ']. Why bother?'})
+        return
+    }
     try {
         let room_users = ROOMPOOL[room_name].users
         let user_index = room_users.indexOf(user_id)
         room_users.splice(user_index, 1)
         saveRoomPool()
-    } catch (e) {
-        console.log('cannot remove user', user_id, 'from room', ROOMPOOL)
+    } catch (E) {
+        console.log('cannot remove user', user_id, 'from room', room_name, ROOMPOOL, E)
     }
 }
 
 function broadcastRoomUsers(room_name) {
-    io.to(room_name)
-        .emit('roomUsers', {
-            room: room_name,
-            users: ROOMPOOL[room_name].users.map(user_id => USERPOOL[user_id].user_name)
-        })
+    if (!room_name) {
+        console.log({E: 'Can not bradcast without room name'})
+        return
+    }
+    try {
+        io.to(room_name)
+            .emit('roomUsers', {
+                room: room_name,
+                users: ROOMPOOL[room_name].users.map(user_id => USERPOOL[user_id].user_name)
+            })
+    } catch (E) {
+        console.log({room_name, E})
+    }
 }
 
 function formatMessage(user_id, text) {
@@ -224,8 +242,8 @@ function formatMessage(user_id, text) {
     if (user_id !== null) {
         try {
             user_name = USERPOOL[user_id].user_name
-        } catch (error) {
-            console.log({ E: error, user_id, USERPOOL })
+        } catch (E) {
+            console.log({ E, user_id, USERPOOL })
         }
     }
     return {
@@ -239,7 +257,7 @@ function formatMessage(user_id, text) {
 
 // ---------------------
 function getAccessLevel(user_id) {
-    console.log(user_id, 'at', MODERATORS, 'is', MODERATORS.indexOf(user_id))
+    // console.log(user_id, 'at', MODERATORS, 'is', MODERATORS.indexOf(user_id))
     return MODERATORS.indexOf(user_id) < 0 ? null: 'moderator'
 }
 function initializeModerators() {
