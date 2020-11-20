@@ -7,11 +7,13 @@ const COGNITO_PROFILE_URL = 'https://api.poff.ee/trigger/cognitoprof?sub='
 
 const server = require('http').createServer()
 const options = {
-    pingInterval: 0.5 * 60 * 1000,
+    pingInterval: 1 * 60 * 1000,
     pingTimeout: 5 * 1000
 }
 const io = require('socket.io')(server, options)
 server.listen(3000)
+
+initializeLogs()
 
 const MODERATORS = initializeModerators()
 
@@ -35,8 +37,16 @@ io.on('connection', (socket) => {
     saveSocketPool()
 
     // socket.conn.on('packetCreate', function (packet) {
-    //     if (packet.type === 'pong') console.log('=== sending pong');
+    //     if (packet.type === 'pong') console.log('=== sending pong')
     // })
+    socket.conn.on('packet', function (packet) {
+        if (packet.type === 'ping') {
+            if (SOCKETPOOL[socket.id]) {
+                savePing(SOCKETPOOL[socket.id].user_id, SOCKETPOOL[socket.id].room_name)
+            }
+        }
+    })
+
     async function lookupUser(user_id) {
         return new Promise((resolve, reject) => {
             https.get(COGNITO_PROFILE_URL + user_id, (res) => {
@@ -84,6 +94,9 @@ io.on('connection', (socket) => {
         console.log({ socket_user })
         if (socket_user.access_level === 'moderator') {
             socket.emit('YOU ARE MODERATOR')
+        }
+        if (SOCKETPOOL[socket.id]) {
+            savePing(SOCKETPOOL[socket.id].user_id, SOCKETPOOL[socket.id].room_name)
         }
 
         socket.join(room_name) // Nüüd on see socket seotud konkreetse nimeruumiga https://socket.io/docs/v3/rooms/index.html 
@@ -249,4 +262,14 @@ function saveRoomPool() {
 }
 function saveMessagePool() {
     savePool(MESSAGEPOOL, messagepool_filepath)
+}
+function initializeLogs() {
+    for (const log_file of ['log/ping.txt']) {
+        if (!fs.existsSync(log_file)) {
+            fs.writeFileSync(log_file, '', 'utf8')
+        }
+    }
+}
+function savePing(user_id, room) {
+    fs.appendFileSync('log/ping.txt', new Date() + ' | ' + user_id + ' | ' + USERPOOL[user_id].user_name + ' | ' + room + '\n')
 }
