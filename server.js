@@ -45,6 +45,12 @@ io.on('connection', (socket) => {
                 savePing(SOCKETPOOL[socket.id].user_id, SOCKETPOOL[socket.id].room_name)
             }
         }
+        if (packet.type === 'pong') {
+            console.log(util.inspect({pong: packet}, null, 4))
+            if (SOCKETPOOL[socket.id]) {
+                savePing(SOCKETPOOL[socket.id].user_id, SOCKETPOOL[socket.id].room_name)
+            }
+        }
     })
 
     async function lookupUser(user_id) {
@@ -223,7 +229,7 @@ function removeUserFromRoompool(room_name, user_id) {
 
 function broadcastRoomUsers(room_name) {
     if (!room_name) {
-        console.log({E: 'Can not bradcast without room name'})
+        console.log({E: 'Can not broadcast without room name'})
         return
     }
     try {

@@ -1,10 +1,11 @@
 {
     "name": "socket-chat-example",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "my first socket.io app",
     "dependencies": {
         "js-yaml": "^3.14.0",
         "moment": "^2.29.1",
+        "googleapis": "^59.0.0",
         "socket.io": "^2.3.0"
     }
 }
