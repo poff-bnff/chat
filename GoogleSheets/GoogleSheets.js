@@ -5,7 +5,7 @@ const { google } = require('googleapis')
 process.chdir(__dirname)
 
 
-async function connect() {
+async function Auth() {
 
     // t88kataloogiks skripti kataloog
 
@@ -62,19 +62,11 @@ async function connect() {
         })
     }
 }
+module.exports.Auth = Auth
 
-Write = async (sheet_id, range, values) => {
-    const auth = await connect()
-    const sheets = google.sheets({ version: 'v4', auth })
-    sheets.spreadsheets.values.get(
-        {
-            spreadsheetId: sheet_id,
-            range: range,
-        }, (err, res) => {
-            if (err) return console.log('The API returned an error: ' + err)
-            console.log(res.data.values)
-        }
-    )
+Write = async (sheet_id, range, oAuth2Client) => {
+    oAuth2Client = oAuth2Client || await Auth()
+    const sheets = google.sheets({ version: 'v4', auth: oAuth2Client })
     sheets.spreadsheets.values.update(
         {
             spreadsheetId: sheet_id,
@@ -83,11 +75,28 @@ Write = async (sheet_id, range, values) => {
             resource: { values: values }
         }, (err, res) => {
             if (err) return console.log('The API returned an error: ' + err)
-            console.log(res.data)
+            // console.log(res.data)
         }
     )
 }
 module.exports.Write = Write
+
+Append = async (sheet_id, range, values, oAuth2Client) => {
+    oAuth2Client = oAuth2Client || await Auth()
+    const sheets = google.sheets({ version: 'v4', auth: oAuth2Client })
+    sheets.spreadsheets.values.append(
+        {
+            spreadsheetId: sheet_id,
+            range: range,
+            valueInputOption: 'RAW',
+            resource: { values: values }
+        }, (err, res) => {
+            if (err) return console.log('The API returned an error: ' + err)
+            // console.log(res.data)
+        }
+    )
+}
+module.exports.Append = Append
 
 // const values = [
 //     ['FOO','bar','baz'],

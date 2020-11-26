@@ -4,6 +4,8 @@ const yaml = require('js-yaml')
 const moment = require('moment')
 const https = require('https')
 const COGNITO_PROFILE_URL = 'https://api.poff.ee/trigger/cognitoprof?sub='
+// const GoogleSheets = require('./GoogleSheets/GoogleSheets.js')
+const LOG_SHEET = '1sBIia17T0Eg28zpLQco226tXnGFu-h5aioUvJPaSyrY'
 
 const server = require('http').createServer()
 const options = {
@@ -91,14 +93,25 @@ io.on('connection', (socket) => {
     }
 
     socket.on('joinRoom', async (incoming_object) => {
-        const room_name = incoming_object.room_name
-        const user_id = incoming_object.user_id
-        // console.log('join user', user_id, 'to room', room_name)
+        // console.log(incoming_object)
+        let room_name = incoming_object.room_name
+        let user_id = incoming_object.user_id
+        if (incoming_object.API_VERSION && incoming_object.API_VERSION === '2') {
+            room_name = incoming_object.LOCATION
+            user_id = incoming_object.USER_ID
+        }
+        console.log('join user', user_id, 'to room', room_name)
         const socket_user = await lookupUser(user_id)
         // console.log({ socket_user })
-        if (socket_user.access_level === 'moderator') {
+        
+        // ver 1
+        if (socket_user.access_level === 'moderator') {  
             socket.emit('YOU ARE MODERATOR')
         }
+        // ---
+        socket.emit('ARE U MODERATOR', socket_user.access_level === 'moderator')
+        // ver 2
+
         
         socket.join(room_name) // Nüüd on see socket seotud konkreetse nimeruumiga https://socket.io/docs/v3/rooms/index.html 
         
@@ -142,7 +155,16 @@ io.on('connection', (socket) => {
     })
 
     // Listen for chatMessage
-    socket.on('messageToServer', ({ user_id, room_name, message }) => {
+    socket.on('messageToServer', (incoming_object) => {
+        console.log(incoming_object)
+        let room_name = incoming_object.room_name
+        let user_id = incoming_object.user_id
+        let message = incoming_object.message
+        if (incoming_object.API_VERSION && incoming_object.API_VERSION === '2') {
+            room_name = incoming_object.LOCATION
+            user_id = incoming_object.USER_ID
+        }
+
         console.log('got messageToServer', socket.id, user_id, room_name, message)
         if (!USERPOOL[user_id] || !ROOMPOOL[room_name] || !ROOMPOOL[room_name].users) {
             console.log({ E: 'Talking before entering...', user_id, room_name, message })
@@ -161,7 +183,9 @@ io.on('connection', (socket) => {
             .emit('messageToClient', MESSAGEPOOL[formatted_message.id])
     })
 
-    socket.on('moderate', (message_id) => {
+    socket.on('moderate message', (incoming_object) => {
+        console.log(incoming_object)
+        let message_id = incoming_object.message_id
         if(USERPOOL[SOCKETPOOL[socket.id].user_id].access_level !== 'moderator') {
             return
         }
@@ -256,7 +280,7 @@ function formatMessage(user_id, text) {
         id: 'u' + Date.now() + Math.floor(Math.random() * 1000),
         user_name,
         text,
-        time: moment().format('HH:mm'),
+        time: moment().add(2, 'hours').format('HH:mm'),
         is_moderated: false
     }
 }
@@ -300,18 +324,22 @@ function saveMessagePool() {
 }
 function initializeLogs() {
     for (const log_file of ['log/ping.txt','log/join.txt', 'log/track.txt']) {
-        if (!fs.existsSync(log_file)) {
-            fs.writeFileSync(log_file, '', 'utf8')
+        if (!fs.existsSync(__dirname + '/' + log_file)) {
+            fs.writeFileSync(__dirname + '/' + log_file, '', 'utf8')
         }
     }
 }
 function savePing(user_id, room) {
-    fs.appendFileSync('log/ping.txt', new Date().toISOString() + ' | ' + user_id + ' | ' + USERPOOL[user_id].user_name + ' | ' + room + '\n')
+    fs.appendFileSync(__dirname + '/' + 'log/ping.txt', new Date().toISOString() + ' | ' + user_id + ' | ' + USERPOOL[user_id].user_name + ' | ' + room + '\n')
+    // const values = dumpLogRow('ping', user_id, location)
+    // GoogleSheets.Append(LOG_SHEET, 'realtime!a2', values)
 }
 function saveJoin(user_id, room) {
     try {
-        fs.appendFileSync('log/join.txt', new Date().toISOString() + ' | ' + user_id + ' | ' + USERPOOL[user_id].user_name + ' | ' + room + '\n')
-    } catch (error) {
+        fs.appendFileSync(__dirname + '/' + 'log/join.txt', new Date().toISOString() + ' | ' + user_id + ' | ' + USERPOOL[user_id].user_name + ' | ' + room + '\n')
+        // const values = dumpLogRow('join', user_id, location)
+        // GoogleSheets.Append(LOG_SHEET, 'realtime!a2', values)
+        } catch (error) {
         console.log({E: error});        
     }
 }
@@ -328,8 +356,22 @@ function saveTrack(user_id, location) {
         location = '~~~/nowhere/~~~'
     }
     try {
-        fs.appendFileSync('log/track.txt', new Date().toISOString() + ' | ' + user_id + ' | ' + USERPOOL[user_id].user_name + ' | ' + location + '\n')
+        fs.appendFileSync(__dirname + '/' + 'log/track.txt', new Date().toISOString() + ' | ' + user_id + ' | ' + USERPOOL[user_id].user_name + ' | ' + location + '\n')
+        // const values = dumpLogRow('track', user_id, location)
+        // GoogleSheets.Append(LOG_SHEET, 'realtime!a2', values)
     } catch (error) {
         console.log({E: error});        
     }
+}
+function dumpLogRow(type, user_id, location) {
+    const d = new Date()
+    console.log({d, iso: d.toISOString(), s1: d.toISOString().substring(0,10), s2: d.toISOString().substring(18, 8)})
+    return values = [[
+        type,
+        d.toISOString().substring(0, 10),
+        d.toISOString().substring(11, 19),
+        user_id,
+        USERPOOL[user_id].user_name,
+        location
+    ]]
 }

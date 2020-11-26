@@ -1,0 +1,9 @@
+/var/www/chat/log/*.txt {
+	rotate 5
+	su nodejs nodejs
+	daily
+	nocompress
+
+	create 644 nodejs nodejs
+}
+
