@@ -93,6 +93,7 @@ io.on('connection', (socket) => {
     }
 
     socket.on('joinRoom', async (incoming_object) => {
+        console.log({'I': 'join', ...incoming_object})
         // console.log(incoming_object)
         let room_name = incoming_object.room_name
         let user_id = incoming_object.user_id
@@ -156,7 +157,7 @@ io.on('connection', (socket) => {
 
     // Listen for chatMessage
     socket.on('messageToServer', (incoming_object) => {
-        console.log(incoming_object)
+        console.log({'I': 'message', ...incoming_object})
         let room_name = incoming_object.room_name
         let user_id = incoming_object.user_id
         let message = incoming_object.message
@@ -184,7 +185,7 @@ io.on('connection', (socket) => {
     })
 
     socket.on('moderate message', (incoming_object) => {
-        console.log(incoming_object)
+        console.log({'I': 'moderate', ...incoming_object})
         let message_id = incoming_object.message_id
         if(USERPOOL[SOCKETPOOL[socket.id].user_id].access_level !== 'moderator') {
             return
@@ -197,24 +198,25 @@ io.on('connection', (socket) => {
             .emit('messageToClient', message)
     })
 
-    socket.on('disconnect', () => {
+    socket.on('disconnect', (incoming_object) => {
+        console.log({'I': 'disconnect', S: socket.id})
         let socket_id = socket.id
         if (SOCKETPOOL[socket_id] === null) {
             disconnectSocket(socket)
             // console.log('close empty connection', socket_id)
             return
         }
-        let room_name = SOCKETPOOL[socket_id].room_name
-        let user_id = SOCKETPOOL[socket_id].user_id
-        let user_name = USERPOOL[user_id].user_name
-        // console.log('Disconnecting', socket_id, user_id, 'from', room_name)
-        removeUserFromRoompool(room_name, user_id)
+        // let room_name = SOCKETPOOL[socket_id].room_name
+        // let user_id = SOCKETPOOL[socket_id].user_id
+        // let user_name = USERPOOL[user_id].user_name
+        // // console.log('Disconnecting', socket_id, user_id, 'from', room_name)
+        // removeUserFromRoompool(room_name, user_id)
         disconnectSocket(socket)
 
         // io.to(room_name)
         //     .emit('messageToClient', formatMessage(null, `- ${user_name}`))
-        removeUserFromRoompool(room_name, user_id)
-        broadcastRoomUsers(room_name)
+        // removeUserFromRoompool(room_name, user_id)
+        // broadcastRoomUsers(room_name)
     })
 })
 
